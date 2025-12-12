@@ -28,20 +28,39 @@ const VirtualMirror68: React.FC<VirtualMirror68Props> = ({
     }
   }, [canvasRef]);
 
-  // Render loop
+  // Render loop - ALWAYS draws video feed
   useEffect(() => {
-    if (!rendererRef.current || !videoRef.current || !canvasRef.current) return;
+    if (!videoRef.current || !canvasRef.current) return;
+
+    let isRendering = true;
 
     const render = () => {
-      if (videoRef.current && videoRef.current.readyState === 4 && rendererRef.current) {
-        // Set canvas size to match video
-        const video = videoRef.current;
-        if (canvasRef.current) {
-          canvasRef.current.width = video.videoWidth || 1280;
-          canvasRef.current.height = video.videoHeight || 720;
+      if (!isRendering) return;
+
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+      
+      if (!video || !canvas) {
+        animationFrameRef.current = requestAnimationFrame(render);
+        return;
+      }
+
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        animationFrameRef.current = requestAnimationFrame(render);
+        return;
+      }
+
+      // Check if video is ready (HAVE_CURRENT_DATA or higher)
+      if (video.readyState >= 2) {
+        // Set canvas size to match video (only if changed)
+        if (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight) {
+          canvas.width = video.videoWidth || 1280;
+          canvas.height = video.videoHeight || 720;
+          console.log(`Canvas resized to ${canvas.width}x${canvas.height}`);
         }
 
-        if (landmarks && landmarks.length === 68) {
+        if (landmarks && landmarks.length === 68 && rendererRef.current) {
           // Render makeup with 68-point landmarks
           rendererRef.current.render(video, landmarks, makeupState);
           
@@ -50,28 +69,29 @@ const VirtualMirror68: React.FC<VirtualMirror68Props> = ({
             rendererRef.current.drawDebugLandmarks(landmarks);
           }
         } else {
-          // No face detected - just show video
-          const ctx = canvasRef.current?.getContext('2d');
-          if (ctx) {
-            ctx.save();
-            ctx.scale(-1, 1);
-            ctx.drawImage(video, -canvasRef.current.width, 0, canvasRef.current.width, canvasRef.current.height);
-            ctx.restore();
-          }
+          // No face detected - ALWAYS show video feed
+          ctx.save();
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          ctx.scale(-1, 1); // Mirror for selfie view
+          ctx.drawImage(video, -canvas.width, 0, canvas.width, canvas.height);
+          ctx.restore();
         }
       }
 
       animationFrameRef.current = requestAnimationFrame(render);
     };
 
+    // Start render loop
+    console.log('Starting render loop...');
     render();
 
     return () => {
+      isRendering = false;
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
       }
     };
-  }, [landmarks, makeupState, showDebugLandmarks, videoRef, canvasRef]);
+  }, [landmarks, makeupState, showDebugLandmarks]);
 
   return (
     <div className="relative w-full h-full bg-black flex items-center justify-center overflow-hidden">

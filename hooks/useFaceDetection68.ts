@@ -120,25 +120,71 @@ export const useFaceDetection68 = (): FaceDetectionHook => {
 
     const startVideo = async () => {
       try {
+        console.log('Requesting camera access...');
         const stream = await navigator.mediaDevices.getUserMedia({
           video: {
-            width: { ideal: 1280 },
-            height: { ideal: 720 },
+            width: { ideal: 1280, min: 640 },
+            height: { ideal: 720, min: 480 },
             facingMode: 'user'
-          }
+          },
+          audio: false
         });
+        
+        console.log('✓ Camera stream obtained');
         
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
+          
+          // Wait for metadata to load
+          videoRef.current.onloadedmetadata = () => {
+            console.log('✓ Video metadata loaded');
+            console.log(`Video size: ${videoRef.current?.videoWidth}x${videoRef.current?.videoHeight}`);
+            
+            // Force play (required on some browsers)
+            if (videoRef.current) {
+              videoRef.current.play()
+                .then(() => console.log('✓ Video playing'))
+                .catch(err => {
+                  console.error('Video play failed:', err);
+                  setError('Failed to start video playback');
+                });
+            }
+          };
         }
-      } catch (err) {
-        console.error('Camera access denied:', err);
-        setError('Camera access denied');
+      } catch (err: any) {
+        console.error('Camera access error:', err);
+        setError(err.message || 'Camera access denied');
       }
     };
 
     startVideo();
+
+    // Cleanup on unmount
+    return () => {
+      if (videoRef.current?.srcObject) {
+        const tracks = (videoRef.current.srcObject as MediaStream).getTracks();
+        tracks.forEach(track => {
+          track.stop();
+          console.log('Camera track stopped');
+        });
+      }
+    };
   }, [isLoading]);
+
+  // Handle mobile tab visibility (prevent freeze)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && videoRef.current) {
+        console.log('Tab visible - resuming video');
+        videoRef.current.play().catch(err => {
+          console.error('Resume play failed:', err);
+        });
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, []);
 
   // Detect face and landmarks
   useEffect(() => {
