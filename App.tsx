@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import VirtualMirror from './components/VirtualMirror';
+import VirtualMirror68 from './components/VirtualMirror68';
 import Controls from './components/Controls';
 import { MakeupState, SkinAnalysisResult } from './types';
 import { LIPSTICK_PALETTE, PRESET_LOOKS } from './constants';
@@ -9,11 +9,11 @@ const App: React.FC = () => {
   const [makeupState, setMakeupState] = useState<MakeupState>(PRESET_LOOKS[0].config);
   
   const [skinAnalysis, setSkinAnalysis] = useState<SkinAnalysisResult | null>(null);
-  const [triggerAnalysis, setTriggerAnalysis] = useState(false);
-  const [showDebugMesh, setShowDebugMesh] = useState(false); // DEBUG MODE
+  const [showDebugLandmarks, setShowDebugLandmarks] = useState(false); // DEBUG MODE - 68 points
 
-  const handleAnalysisComplete = () => {
-    setTriggerAnalysis(false);
+  // Skin analysis handled differently with face-api.js
+  const handleSkinAnalysis = (result: SkinAnalysisResult) => {
+    setSkinAnalysis(result);
   };
 
   return (
@@ -39,28 +39,26 @@ const App: React.FC = () => {
         )}
       </div>
 
-      {/* Main Viewport */}
+      {/* Main Viewport - NOW USING 68-POINT LANDMARKS */}
       <div className="absolute inset-0 z-0">
-        <VirtualMirror
+        <VirtualMirror68
           makeupState={makeupState}
-          onSkinAnalyzed={setSkinAnalysis}
-          triggerAnalysis={triggerAnalysis}
-          onAnalysisComplete={handleAnalysisComplete}
-          showDebugMesh={showDebugMesh}
+          onSkinAnalyzed={handleSkinAnalysis}
+          showDebugLandmarks={showDebugLandmarks}
         />
       </div>
       
-      {/* Debug Mesh Toggle - Top Right */}
+      {/* Debug Landmarks Toggle - Top Right */}
       <button
-        onClick={() => setShowDebugMesh(!showDebugMesh)}
+        onClick={() => setShowDebugLandmarks(!showDebugLandmarks)}
         className={`absolute top-20 right-6 z-20 px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-all ${
-          showDebugMesh 
+          showDebugLandmarks 
             ? 'bg-green-500 text-white shadow-lg' 
             : 'bg-black/50 text-gray-400 hover:bg-black/70'
         }`}
-        title="Toggle face mesh visualization"
+        title="Toggle 68-point landmarks visualization (Python model)"
       >
-        {showDebugMesh ? '✓ Mesh ON' : 'Show Mesh'}
+        {showDebugLandmarks ? '✓ 68 Points' : 'Show 68pts'}
       </button>
 
       {/* Controls Overlay - FIXED FOR MOBILE */}
@@ -74,8 +72,8 @@ const App: React.FC = () => {
                 makeupState={makeupState}
                 setMakeupState={setMakeupState}
                 skinAnalysis={skinAnalysis}
-                onAnalyzeSkin={() => setTriggerAnalysis(true)}
-                isAnalyzing={triggerAnalysis}
+                onAnalyzeSkin={() => {/* Skin analysis with face-api.js */}}
+                isAnalyzing={false}
             />
           </div>
       </div>
