@@ -21,17 +21,24 @@ const Controls: React.FC<ControlsProps> = ({
   const [isOpen, setIsOpen] = useState(true);
   const panelRef = useRef<HTMLDivElement>(null);
 
-  // Close panel when clicking outside
+  // Close panel when clicking outside (FIXED)
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
+    const handleClickOutside = (event: MouseEvent | TouchEvent) => {
       if (panelRef.current && !panelRef.current.contains(event.target as Node) && isOpen) {
-        // Optional: Uncomment to enable click-outside-to-close
-        // setIsOpen(false);
+        setIsOpen(false);
       }
     };
-    document.addEventListener("mousedown", handleClickOutside);
+    
+    // Small delay to prevent immediate close on open
+    const timer = setTimeout(() => {
+      document.addEventListener("mousedown", handleClickOutside);
+      document.addEventListener("touchstart", handleClickOutside);
+    }, 100);
+
     return () => {
+      clearTimeout(timer);
       document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("touchstart", handleClickOutside);
     };
   }, [isOpen]);
 
@@ -50,7 +57,10 @@ const Controls: React.FC<ControlsProps> = ({
   
   const applyPreset = (preset: PresetLook) => {
     setMakeupState(preset.config);
-    // Visual feedback or optional close
+    // Auto-close panel after selection with smooth transition
+    setTimeout(() => {
+      setIsOpen(false);
+    }, 300);
   }
 
   // Common UI Components
@@ -111,7 +121,7 @@ const Controls: React.FC<ControlsProps> = ({
   }
 
   return (
-    <div ref={panelRef} className="absolute bottom-0 left-0 right-0 bg-black/95 backdrop-blur-xl rounded-t-3xl shadow-[0_-5px_30px_rgba(0,0,0,0.8)] border-t border-white/10 max-h-[60vh] flex flex-col z-40 transition-transform duration-300">
+    <div ref={panelRef} className="absolute bottom-0 left-0 right-0 bg-black/95 backdrop-blur-xl rounded-t-3xl shadow-[0_-5px_30px_rgba(0,0,0,0.8)] border-t border-white/10 max-h-[60vh] md:max-h-[70vh] flex flex-col z-40 transition-transform duration-300 controls-panel-mobile">
       
       {/* Top Bar: Tabs & Close */}
       <div className="flex items-center justify-between px-6 py-3 border-b border-white/5 bg-white/5 rounded-t-3xl">
@@ -285,30 +295,109 @@ const Controls: React.FC<ControlsProps> = ({
             </div>
         )}
 
-        {/* LOOKS TAB */}
+        {/* LOOKS TAB - WITH PREVIEW THUMBNAILS */}
         {activeTab === 'looks' && (
-             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 animate-fadeIn">
-                 {PRESET_LOOKS.map(look => (
-                     <button
-                        key={look.name}
-                        onClick={() => applyPreset(look)}
-                        className="group relative overflow-hidden rounded-xl bg-gray-800 hover:bg-gray-700 transition-all text-left p-5 border border-white/5 hover:border-pink-500/50 hover:shadow-[0_0_20px_rgba(236,72,153,0.15)]"
-                     >
-                         <div className="absolute top-0 right-0 p-3 opacity-20 group-hover:opacity-100 transition-opacity text-2xl">
-                            ✦
-                         </div>
-                         <h3 className="text-lg font-bold text-white mb-1 group-hover:text-pink-200 transition-colors">{look.name}</h3>
-                         <p className="text-xs text-gray-400 mb-4">{look.description}</p>
-                         <div className="flex gap-2 items-center">
-                             <div className="flex -space-x-2">
-                                <div className="w-6 h-6 rounded-full border-2 border-gray-800" style={{backgroundColor: look.config.lips.color}} title="Lip" />
-                                <div className="w-6 h-6 rounded-full border-2 border-gray-800" style={{backgroundColor: look.config.eyes.shadowColor}} title="Eye" />
-                                <div className="w-6 h-6 rounded-full border-2 border-gray-800" style={{backgroundColor: look.config.face.blushColor}} title="Blush" />
+             <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4 animate-fadeIn">
+                 {PRESET_LOOKS.map(look => {
+                     const isSelected = 
+                       makeupState.lips.color === look.config.lips.color &&
+                       makeupState.eyes.shadowColor === look.config.eyes.shadowColor;
+                     
+                     return (
+                       <button
+                          key={look.name}
+                          onClick={() => applyPreset(look)}
+                          className={`look-card ${isSelected ? 'look-card-selected' : ''} group text-left`}
+                       >
+                           {/* Preview Area - Face Icon with Makeup Colors */}
+                           <div className="look-preview">
+                              <div className="look-preview-placeholder">
+                                {/* Stylized Face SVG with makeup colors */}
+                                <svg width="100%" height="100%" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                  {/* Face Shape */}
+                                  <ellipse cx="50" cy="50" rx="30" ry="35" fill="#2a2a2a" stroke="#444" strokeWidth="1.5"/>
+                                  
+                                  {/* Eyes with Shadow */}
+                                  <ellipse cx="40" cy="42" rx="6" ry="8" fill={look.config.eyes.shadowColor} opacity="0.6"/>
+                                  <ellipse cx="60" cy="42" rx="6" ry="8" fill={look.config.eyes.shadowColor} opacity="0.6"/>
+                                  <circle cx="40" cy="44" r="2.5" fill="#1a1a1a"/>
+                                  <circle cx="60" cy="44" r="2.5" fill="#1a1a1a"/>
+                                  <circle cx="40.5" cy="43.5" r="0.8" fill="#666"/>
+                                  <circle cx="60.5" cy="43.5" r="0.8" fill="#666"/>
+                                  
+                                  {/* Eyeliner */}
+                                  {look.config.eyes.linerOpacity > 0 && (
+                                    <>
+                                      <path d="M 34 42 Q 40 40 46 42" stroke={look.config.eyes.linerColor} strokeWidth="1.5" strokeLinecap="round" opacity={look.config.eyes.linerOpacity}/>
+                                      <path d="M 54 42 Q 60 40 66 42" stroke={look.config.eyes.linerColor} strokeWidth="1.5" strokeLinecap="round" opacity={look.config.eyes.linerOpacity}/>
+                                    </>
+                                  )}
+                                  
+                                  {/* Blush */}
+                                  <ellipse cx="32" cy="55" rx="6" ry="4" fill={look.config.face.blushColor} opacity="0.5"/>
+                                  <ellipse cx="68" cy="55" rx="6" ry="4" fill={look.config.face.blushColor} opacity="0.5"/>
+                                  
+                                  {/* Highlighter Glow */}
+                                  {look.config.face.highlighterOpacity > 0 && (
+                                    <>
+                                      <circle cx="50" cy="38" r="3" fill={look.config.face.highlighterColor} opacity="0.4"/>
+                                      <ellipse cx="35" cy="52" rx="4" ry="2" fill={look.config.face.highlighterColor} opacity="0.3"/>
+                                      <ellipse cx="65" cy="52" rx="4" ry="2" fill={look.config.face.highlighterColor} opacity="0.3"/>
+                                    </>
+                                  )}
+                                  
+                                  {/* Lips */}
+                                  <path 
+                                    d="M 40 65 Q 45 63 50 63 Q 55 63 60 65 Q 55 70 50 70 Q 45 70 40 65 Z" 
+                                    fill={look.config.lips.color} 
+                                    opacity={look.config.lips.opacity}
+                                    stroke={look.config.lips.color}
+                                    strokeWidth="0.5"
+                                  />
+                                  {/* Lip Gloss Effect */}
+                                  {look.config.lips.finish === 'gloss' && (
+                                    <ellipse cx="50" cy="67" rx="4" ry="1.5" fill="white" opacity="0.4"/>
+                                  )}
+                                </svg>
+                              </div>
+                              
+                              {/* Color indicator dots */}
+                              <div className="look-colors">
+                                <span 
+                                  className="look-color-dot" 
+                                  style={{ backgroundColor: look.config.lips.color }}
+                                  title="Lips"
+                                />
+                                <span 
+                                  className="look-color-dot" 
+                                  style={{ backgroundColor: look.config.eyes.shadowColor }}
+                                  title="Eyes"
+                                />
+                                <span 
+                                  className="look-color-dot" 
+                                  style={{ backgroundColor: look.config.face.blushColor }}
+                                  title="Blush"
+                                />
+                              </div>
+                           </div>
+                           
+                           {/* Look Info */}
+                           <div className="look-info">
+                              <div className="look-name">{look.name}</div>
+                              <div className="look-description">{look.description}</div>
+                           </div>
+                           
+                           {/* Selection indicator */}
+                           {isSelected && (
+                             <div className="absolute top-2 right-2 bg-pink-500 text-white rounded-full p-1">
+                               <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                 <path d="M13.5 4L6 11.5L2.5 8" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                               </svg>
                              </div>
-                             <span className="text-[10px] text-gray-500 uppercase font-bold tracking-wider ml-2">Apply Look</span>
-                         </div>
-                     </button>
-                 ))}
+                           )}
+                       </button>
+                     );
+                 })}
              </div>
         )}
 
