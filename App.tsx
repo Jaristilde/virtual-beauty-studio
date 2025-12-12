@@ -10,6 +10,7 @@ const App: React.FC = () => {
   
   const [skinAnalysis, setSkinAnalysis] = useState<SkinAnalysisResult | null>(null);
   const [triggerAnalysis, setTriggerAnalysis] = useState(false);
+  const [showDebugMesh, setShowDebugMesh] = useState(false); // DEBUG MODE
 
   const handleAnalysisComplete = () => {
     setTriggerAnalysis(false);
@@ -45,12 +46,30 @@ const App: React.FC = () => {
           onSkinAnalyzed={setSkinAnalysis}
           triggerAnalysis={triggerAnalysis}
           onAnalysisComplete={handleAnalysisComplete}
+          showDebugMesh={showDebugMesh}
         />
       </div>
+      
+      {/* Debug Mesh Toggle - Top Right */}
+      <button
+        onClick={() => setShowDebugMesh(!showDebugMesh)}
+        className={`absolute top-20 right-6 z-20 px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-all ${
+          showDebugMesh 
+            ? 'bg-green-500 text-white shadow-lg' 
+            : 'bg-black/50 text-gray-400 hover:bg-black/70'
+        }`}
+        title="Toggle face mesh visualization"
+      >
+        {showDebugMesh ? '✓ Mesh ON' : 'Show Mesh'}
+      </button>
 
-      {/* Controls Overlay */}
-      <div className="absolute inset-0 z-30 pointer-events-none">
-          <div className="pointer-events-auto h-full w-full">
+      {/* Controls Overlay - FIXED FOR MOBILE */}
+      <div className="absolute inset-0 z-30 pointer-events-none flex flex-col">
+          {/* Spacer to push controls to bottom on mobile */}
+          <div className="flex-1 pointer-events-none"></div>
+          
+          {/* Controls at bottom */}
+          <div className="pointer-events-auto">
             <Controls
                 makeupState={makeupState}
                 setMakeupState={setMakeupState}

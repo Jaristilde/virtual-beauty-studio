@@ -111,17 +111,31 @@ const Controls: React.FC<ControlsProps> = ({
 
   if (!isOpen) {
       return (
-          <button 
-            onClick={() => setIsOpen(true)}
-            className="absolute bottom-6 right-6 bg-pink-600 text-white p-4 rounded-full shadow-lg hover:bg-pink-500 transition-all z-50 animate-bounce"
-          >
-              <span className="text-2xl">✨</span>
-          </button>
+          <div className="absolute bottom-6 right-6 z-50 flex flex-col items-center gap-2">
+              <button 
+                onClick={() => setIsOpen(true)}
+                className="bg-gradient-to-r from-pink-600 to-purple-600 text-white p-5 rounded-full shadow-2xl hover:scale-110 transition-all relative group"
+                aria-label="Open makeup controls"
+              >
+                  <span className="text-2xl">💄</span>
+                  
+                  {/* Tooltip */}
+                  <div className="absolute bottom-full right-0 mb-2 px-3 py-1 bg-black/90 text-white text-xs rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                    Customize Makeup
+                    <div className="absolute top-full right-4 w-2 h-2 bg-black/90 transform rotate-45 -mt-1"></div>
+                  </div>
+              </button>
+              
+              {/* Persistent Label Below Button */}
+              <div className="bg-black/70 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold text-white uppercase tracking-wider">
+                Makeup
+              </div>
+          </div>
       );
   }
 
   return (
-    <div ref={panelRef} className="absolute bottom-0 left-0 right-0 bg-black/95 backdrop-blur-xl rounded-t-3xl shadow-[0_-5px_30px_rgba(0,0,0,0.8)] border-t border-white/10 max-h-[60vh] md:max-h-[70vh] flex flex-col z-40 transition-transform duration-300 controls-panel-mobile">
+    <div ref={panelRef} className="absolute bottom-0 left-0 right-0 bg-black/95 backdrop-blur-xl rounded-t-3xl shadow-[0_-5px_30px_rgba(0,0,0,0.8)] border-t border-white/10 max-h-[45vh] md:max-h-[60vh] flex flex-col z-40 transition-transform duration-300 controls-panel-mobile">
       
       {/* Top Bar: Tabs & Close */}
       <div className="flex items-center justify-between px-6 py-3 border-b border-white/5 bg-white/5 rounded-t-3xl">

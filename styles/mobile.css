@@ -160,11 +160,11 @@ button, a, [role="button"] {
   line-height: 1.4;
 }
 
-/* Mobile optimizations */
+/* Mobile optimizations - CRITICAL FOR FACE VISIBILITY */
 @media (max-width: 768px) {
-  /* Ensure controls panel doesn't cover too much screen */
+  /* REDUCED height so face stays visible - Snapchat-style */
   .controls-panel-mobile {
-    max-height: 55vh;
+    max-height: 45vh !important;
   }
   
   /* Make tabs more compact on mobile */
@@ -193,6 +193,23 @@ button, a, [role="button"] {
   input[type="range"]::-moz-range-thumb {
     width: 24px;
     height: 24px;
+  }
+  
+  /* Ensure camera view stays centered and visible */
+  .camera-container-mobile {
+    height: 55vh !important;
+    min-height: 55vh !important;
+  }
+}
+
+/* Extra small devices - even less panel coverage */
+@media (max-width: 480px) {
+  .controls-panel-mobile {
+    max-height: 40vh !important;
+  }
+  
+  .camera-container-mobile {
+    height: 60vh !important;
   }
 }
 

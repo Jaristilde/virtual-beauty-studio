@@ -9,13 +9,15 @@ interface VirtualMirrorProps {
   onSkinAnalyzed: (result: SkinAnalysisResult) => void;
   triggerAnalysis: boolean;
   onAnalysisComplete: () => void;
+  showDebugMesh?: boolean; // NEW: Show face mesh for debugging
 }
 
 const VirtualMirror: React.FC<VirtualMirrorProps> = ({
   makeupState,
   onSkinAnalyzed,
   triggerAnalysis,
-  onAnalysisComplete
+  onAnalysisComplete,
+  showDebugMesh = false
 }) => {
   const webcamRef = useRef<Webcam>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -23,9 +25,9 @@ const VirtualMirror: React.FC<VirtualMirrorProps> = ({
   const previousLandmarksRef = useRef<any[] | null>(null);
   const [isCameraReady, setIsCameraReady] = useState(false);
 
-  // --- TEMPORAL SMOOTHING ---
+  // --- TEMPORAL SMOOTHING (REDUCED FOR BETTER RESPONSIVENESS) ---
   const applyTemporalSmoothing = (newLandmarks: any[]) => {
-      const SMOOTHING_FACTOR = 0.5; // 0.0 = no smoothing, 0.9 = high smoothing/lag
+      const SMOOTHING_FACTOR = 0.2; // REDUCED from 0.5 - more responsive tracking!
       
       if (!previousLandmarksRef.current) {
           previousLandmarksRef.current = newLandmarks;
@@ -474,10 +476,47 @@ const VirtualMirror: React.FC<VirtualMirrorProps> = ({
 
         // E. Lips (Last to sit on top)
         drawLips(ctx, getPoint, makeupState.lips.color, makeupState.lips.opacity, makeupState.lips.finish);
+
+        // F. DEBUG: Draw face mesh landmarks (if enabled)
+        if (showDebugMesh) {
+          ctx.save();
+          ctx.fillStyle = '#00ff00';
+          ctx.strokeStyle = '#00ff00';
+          ctx.lineWidth = 1;
+          
+          // Draw all 468 landmarks as small green dots
+          landmarks.forEach((landmark: any, index: number) => {
+            const x = landmark.x * videoWidth;
+            const y = landmark.y * videoHeight;
+            ctx.beginPath();
+            ctx.arc(x, y, 2, 0, 2 * Math.PI);
+            ctx.fill();
+          });
+          
+          // Draw key landmarks in red (lips, eyes)
+          ctx.fillStyle = '#ff0000';
+          [...MESH_ANNOTATIONS.lipsUpperOuter, ...MESH_ANNOTATIONS.lipsLowerOuter].forEach(idx => {
+            const p = getPoint(idx);
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, 3, 0, 2 * Math.PI);
+            ctx.fill();
+          });
+          
+          // Draw eye landmarks in blue
+          ctx.fillStyle = '#0000ff';
+          [...MESH_ANNOTATIONS.leftEye, ...MESH_ANNOTATIONS.rightEye].forEach(idx => {
+            const p = getPoint(idx);
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, 3, 0, 2 * Math.PI);
+            ctx.fill();
+          });
+          
+          ctx.restore();
+        }
       }
       ctx.restore();
     },
-    [makeupState, triggerAnalysis, onAnalysisComplete, onSkinAnalyzed]
+    [makeupState, triggerAnalysis, onAnalysisComplete, onSkinAnalyzed, showDebugMesh]
   );
 
   useEffect(() => {
@@ -489,9 +528,9 @@ const VirtualMirror: React.FC<VirtualMirrorProps> = ({
 
     faceMesh.setOptions({
       maxNumFaces: 1,
-      refineLandmarks: true,
-      minDetectionConfidence: 0.5,
-      minTrackingConfidence: 0.5,
+      refineLandmarks: true, // CRITICAL: Enables iris and lip tracking
+      minDetectionConfidence: 0.7, // INCREASED for better accuracy
+      minTrackingConfidence: 0.7, // INCREASED for better tracking
     });
     
     faceMeshRef.current = faceMesh;
@@ -546,7 +585,8 @@ const VirtualMirror: React.FC<VirtualMirrorProps> = ({
       />
       <canvas
         ref={canvasRef}
-        className="max-w-full max-h-full object-contain"
+        className="max-w-full max-h-full object-contain transform scale-x-[-1]"
+        style={{ imageRendering: 'auto' }}
       />
     </div>
   );
