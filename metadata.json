@@ -1,0 +1,7 @@
+{
+  "name": "Virtual Beauty Studio",
+  "description": "A professional-grade virtual makeup try-on application featuring real-time lipstick simulation and intelligent skin tone analysis using computer vision.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
